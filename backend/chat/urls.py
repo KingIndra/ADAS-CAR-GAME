@@ -3,6 +3,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path("cors/", views.cors, name="cors"),
+    path("cors_rest/", views.cors_rest, name="cors_rest"),
+
     path("signup/", views.signup, name="signup"),
     path("signin/", views.signin, name="signin"),
     path("signout/", views.signout, name="signout"),

@@ -332,7 +332,7 @@ async function animate(){
                 if(i==0) firstTraffic = traffic.length-1
                 if(i==2) lastTraffic = traffic.length-1
             }
-            if(traffic.length > 8) {
+            if(traffic.length > 9) {
                 for(let i=0; i<3; i++) {
                     traffic.shift();
                     firstTraffic--
@@ -398,5 +398,10 @@ async function animate(){
     }
     requestAnimationFrame(animate);
 }
+
+// setTimeout(() => {
+//     if(bestCar.controlType == "KEYS")
+//         bestCar.maxSpeed += bestCar.maxSpeed * 0.5
+// }, 100)
 
 animate()

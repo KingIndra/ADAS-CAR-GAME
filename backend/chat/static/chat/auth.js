@@ -90,3 +90,18 @@ if(user) {
     const bottom_info = document.getElementById("bottom-info")
     bottom_info.style.display = "none"
 }
+
+async function corsAxios() {
+    const respose = await axios.get(`chat/cors/`)
+    const data = respose.data
+    console.log("here is cors data", data)
+}
+
+function corsFetch() {
+    fetch("http://localhost:8000/chat/cors/")
+    .then(response => response.json())
+    .then(data => {console.log(data)})
+}
+
+// corsAxios()
+corsFetch()
