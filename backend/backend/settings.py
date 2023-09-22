@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_celery_results',
     'django_celery_beat',
+    'friends'
 ]
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
@@ -70,8 +71,8 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [("127.0.0.1", 6379)],
-            # "capacity": 15000,  # default 100
-            # "expiry": 1,  # default 60
+            "capacity": 15000,  # default 100
+            "expiry": 1,  # default 60
         },
     },
 }

@@ -55,6 +55,7 @@ def email(request):
     
     profile = Profile.objects.get(user = request.user)
     context = {'email': profile.email}
+    context['username'] = profile.user.username
 
     def unverfiy():
         profile.email_verified = False
