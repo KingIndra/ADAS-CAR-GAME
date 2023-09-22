@@ -68,21 +68,22 @@ async function axiosBestBrain(request, brain) {
     let respose
     switch(request) {
         case GET:
-            respose = await axios.get(`chat/get_bestbrain/`)
+            respose = await axios.get(`game/get_bestbrain/`)
             break
 
         case POST:
             const data = {
                 bestbrain : JSON.stringify(brain)
             }
-            respose = await axios.post(`chat/get_bestbrain/`, data)
+            respose = await axios.post(`game/get_bestbrain/`, data)
             break
 
         case DELETE:
-            respose = await axios.delete(`chat/get_bestbrain/`)
+            respose = await axios.delete(`game/get_bestbrain/`)
             break
     }   
     let bestbrain = respose.data.bestbrain
+    console.log(bestbrain)
     return bestbrain ? JSON.parse(bestbrain) : ""
 }
 
@@ -91,17 +92,11 @@ if(user) {
     bottom_info.style.display = "none"
 }
 
-async function corsAxios() {
-    const respose = await axios.get(`chat/cors/`)
-    const data = respose.data
-    console.log("here is cors data", data)
-}
-
-function corsFetch() {
-    fetch("http://localhost:8000/chat/cors/")
-    .then(response => response.json())
-    .then(data => {console.log(data)})
-}
-
+// async function corsAxios() {
+//     const respose = await axios.post(`game/cors_rest/`, {
+//         message: "this is a message"
+//     })
+//     const data = respose.data
+//     console.log("here is cors data from axios", data)
+// }
 // corsAxios()
-corsFetch()

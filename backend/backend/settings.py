@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap4',
     'rest_framework',
+    'django_celery_results',
+    'django_celery_beat',
 ]
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
@@ -113,7 +115,7 @@ LOGIN_URL = 'signin'
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -132,3 +134,38 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = "kingindra360@gmail.com"
+EMAIL_HOST_PASSWORD = "rtrc zyto qpaf mhox"
+
+
+CELERY_TIMEZONE = "Asia/Kolkata"
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_RESULT_EXTENDED = True
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_TASK_DEFAULT_QUEUE = "celery"
+
+CILERY_TIMEZONE = "Asia/Kolkata"
+CILERY_BROKER_URL = 'redis://localhost:6379/0'
+CILERY_RESULT_BACKEND = 'django-db'
+CILERY_RESULT_EXTENDED = True
+CILERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CILERY_TASK_DEFAULT_QUEUE = "cilery"
+
+
+# CELERY_BEAT_SCHEDULE = {
+#     'every-10-seconds': {
+#         'task': 'chat.tasks.periodic',
+#         'schedule': 10,
+#         'args': ('11111',)
+#     }
+# }
+
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# CELERY_TASK_TRACK_STARTED = True
+# CELERY_TASK_TIME_LIMIT = 30 * 60

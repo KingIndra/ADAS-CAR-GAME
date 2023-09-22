@@ -21,7 +21,7 @@ class ScoresAPIClass:
         pass
 
     @database_sync_to_async
-    def get(self, user=None):
+    def get(self, user):
 
         all_profiles = Profile.objects.all().order_by('-score')
 
@@ -35,8 +35,6 @@ class ScoresAPIClass:
 
         def mapping(args):
             i, profile = args
-            if (user and profile.user.username == user.username): 
-                self.flag = True
             return {
                 "rank": i,
                 "username": profile.user.username, 
@@ -45,7 +43,7 @@ class ScoresAPIClass:
             }
 
         profiles = list(map(mapping, enumerate(profiles, 1)))
-        return profiles, self.flag, self.rank
+        return profiles, self.rank
     
 ScoresAPI = ScoresAPIClass()
 
@@ -72,13 +70,12 @@ class LeadBoardConsumer(AsyncJsonWebsocketConsumer):
         score = data["message"]
         # 
         profile = await ProfileAPI.save(self.user, score)
-        players, me_included, my_rank = await ScoresAPI.get(self.user)
+        players, my_rank = await ScoresAPI.get(self.user)
         # 
         await self.channel_layer.group_send(self.group_name, {
             "type": "chat.message", 
             "message": {
                 "players": players,
-                'me_included': me_included,
             },
         })
         await self.send_json({

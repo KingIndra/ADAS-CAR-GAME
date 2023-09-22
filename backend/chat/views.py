@@ -3,34 +3,173 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 
-from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
+from celery.result import AsyncResult
+
 from .models import Profile
+from .serializers import ProfileSerializer
+from utils.utils import generateOTP
+
+from chat.tasks import add, mail, clear_otp
+from chat.task import threading
+
+from datetime import datetime, timedelta
+from django.utils import timezone
 
 
-@login_required
-def cors(request):
-    context = {}
-    context['username'] = request.user.username
-    return JsonResponse(context)
-
-@api_view(['GET', 'POST'])
+@api_view(['GET', 'POST', 'PUT'])
 @permission_classes([IsAuthenticated])
-def cors_rest(request):
-    context = {}
-    context['username'] = request.user.username
+def celery(request):
+    
+    profile = Profile.objects.get(user = request.user)
+    context = {'email': profile.email}
+
+    if request.method == "GET":
+        a = request.data.get('a', 0)
+        b = request.data.get('b', 0)
+        c = request.data.get('c', 0)
+        result = add.delay(a, b, c) 
+        context["result"] = result.id
+
+    elif request.method == "POST":
+        task_id = request.data.get('task_id', '')
+        result = AsyncResult(task_id)
+        context['result'] = result.result
+
+    elif request.method == "PUT":
+        a = request.data.get('a', 0)
+        b = request.data.get('b', 0)
+        c = request.data.get('c', 0)
+        result = threading.delay(a, b, c)
+        context["result"] = result.id
+
     return Response(context)
 
 
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def email(request):
+    
+    profile = Profile.objects.get(user = request.user)
+    context = {'email': profile.email}
+
+    def unverfiy():
+        profile.email_verified = False
+        profile.save()
+
+    if request.method == 'POST':
+        serializer = ProfileSerializer(instance=profile, data=request.data)
+        if serializer.is_valid():
+            context['email'] = serializer.save().email
+            unverfiy()
+
+    elif request.method == 'DELETE':
+        profile.email = None
+        profile.save()
+        context['email'] = profile.email
+
+    return Response(context)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def verify_email(request):
+
+    profile = Profile.objects.get(user = request.user)
+    context = {'email': profile.email}
+
+    def del_otp(verified):
+        profile.email_otp = None
+        profile.email_verified = verified
+        profile.save()
+
+    if not profile.email:
+        context['message'] = 'no email for this user'
+
+    elif request.method == "GET":
+        request.session['attempt'] = 0
+        otp = generateOTP()
+        profile.email_otp = otp
+        profile.otp_time = datetime.now() + timedelta(minutes=5)
+        profile.save()
+        mail.delay("Verify Otp", f"{otp} valid for {300}s", [profile.email,])
+        context['message'] = 'otp sent'
+        
+    elif request.method == "POST":
+        request.session['attempt'] = request.session.get('attempt', 0) + 1
+        context['attempt'] = request.session['attempt']
+
+        otp = request.data.get('otp', False)
+        condition = context['attempt'] < 4 and otp and profile.otp_time and profile.otp_time > timezone.now() and profile.email_otp == otp
+
+        if condition:
+            mail.delay("Confirmed", "Verified", [profile.email,])
+            del_otp(True)
+            context['message'] = 'otp verified'
+        else:
+            context['message'] = 'invalid things'
+
+    return Response(context)
+
+
+@api_view(['GET', 'POST'])
+def reset_password(request):
+
+    profile = Profile.objects.get(user = request.user)
+    context = {'email': profile.email}
+
+    def del_otp(verified):
+        profile.email_otp = None
+        profile.email_verified = verified
+        profile.save()
+
+    if not profile.email:
+        context['message'] = 'no email for this user'
+
+    elif request.method == "GET":
+        request.session['attempt_pr'] = 0
+        otp = generateOTP()
+        profile.email_otp = otp
+        profile.otp_time = datetime.now() + timedelta(minutes=5)
+        profile.save()
+        mail.delay("Reset Otp", f"{otp} valid for {300}s", [profile.email,])
+        context['message'] = 'otp sent'
+        
+    elif request.method == "POST":
+        request.session['attempt_pr'] = request.session.get('attempt_pr', 0) + 1
+        context['attempt_pr'] = request.session['attempt_pr']
+
+        otp = request.data.get('otp', False)
+        new_password = request.data.get('new_password', False)
+
+        print('otp', otp)
+        print('otp_time', profile.otp_time, profile.otp_time > timezone.now())
+        print('confirm otp', profile.email_otp == otp)
+
+        condition = (
+            context['attempt_pr'] < 4 and otp and 
+            profile.otp_time and 
+            profile.otp_time > timezone.now() and 
+            profile.email_otp == otp
+        )
+
+        if condition:
+            profile.user.set_password(new_password)
+            profile.user.save()
+            mail.delay("Confirmed", "password reseted", [profile.email,])
+            del_otp(True)
+            context['message'] = 'otp verified'
+        else:
+            context['message'] = 'invalid things'
+
+    return Response(context)
+
 
 def game(request):
-    context = {
-        'list': []
-    }
-    return render(request, "project/index.html", context)
+    return render(request, "project/index.html")
 
 
 def signup(request):
@@ -85,7 +224,7 @@ def signout(request):
 @api_view(['GET', 'POST', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def get_bestbrain(request):
-    # 
+    
     context = {}
     profile = Profile.objects.get(user = request.user)
 
@@ -100,11 +239,3 @@ def get_bestbrain(request):
 
     context['bestbrain'] = profile.bestbrain
     return Response(context)
-
-
-def index(request):
-    return render(request, "chat/index.html")
-
-
-def room(request, room_name):
-    return render(request, "chat/room.html", {"room_name": room_name})
