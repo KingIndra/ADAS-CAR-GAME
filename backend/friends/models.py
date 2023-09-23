@@ -1,14 +1,16 @@
 from django.db import models
 from django.contrib.auth.models import User
+
 from datetime import datetime, timedelta
-from django.utils import timezone
+from django.db.models.functions import Now
 
+# code
 
-# Create your models here.
+# 
 class FriendList(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='user')
-    friends = models.ManyToManyField(User, null=True, blank=True, related_name='friends')
+    friends = models.ManyToManyField(User, blank=True, related_name='friends')
 
     def __str__(self) -> str:
         return self.user.username
@@ -34,6 +36,7 @@ class FriendList(models.Model):
         return False
 
 
+# 
 class FriendRequest(models.Model):
 
     sender = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='sender')
@@ -65,3 +68,39 @@ class FriendRequest(models.Model):
     def toggle_status(self, flag):
         self.is_active = flag
         self.save()
+
+
+# 
+class Notification(models.Model):
+
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='received_by')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='sendt_by')
+    message = models.TextField(null=True, blank=True)
+    seen = models.BooleanField(null=True, blank=True, default=False)
+    category = models.CharField(max_length=100, null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    @staticmethod
+    def get_or_create(receiver, sender, message, category):
+        # 
+        receiver = User.objects.get(username=receiver)
+        sender = User.objects.get(username=sender)
+        # 
+        return Notification.objects.get_or_create(
+            receiver=receiver, sender=sender, message=message, category=category
+        )
+    
+    @staticmethod
+    def clear_notifications():
+        Notification.objects.filter(
+            seen = True,
+            timestamp__lt = Now() - timedelta(days=1)
+        ).delete()
+
+    def see(self):
+        self.seen = True
+        self.save()
+
+    def __str__(self) -> str:
+        return f'{self.sender.username} notifying {self.receiver.username}'
+    
