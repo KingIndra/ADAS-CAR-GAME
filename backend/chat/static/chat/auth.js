@@ -83,7 +83,6 @@ async function axiosBestBrain(request, brain) {
             break
     }   
     let bestbrain = respose.data.bestbrain
-    console.log(bestbrain)
     return bestbrain ? JSON.parse(bestbrain) : ""
 }
 
@@ -92,11 +91,15 @@ if(user) {
     bottom_info.style.display = "none"
 }
 
-// async function corsAxios() {
-//     const respose = await axios.post(`game/cors_rest/`, {
-//         message: "this is a message"
-//     })
-//     const data = respose.data
-//     console.log("here is cors data from axios", data)
-// }
-// corsAxios()
+async function notifications() {
+    let permission = await Notification.requestPermission();
+    console.log(permission)
+    const greeting = new Notification('Hi, How are you?',{
+        body: 'Have a good day',
+        icon: 'https://picsum.photos/200/300'
+    });
+    setTimeout(() => {
+        greeting.close()
+    }, 10000);
+}
+notifications()

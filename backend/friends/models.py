@@ -97,10 +97,86 @@ class Notification(models.Model):
             timestamp__lt = Now() - timedelta(days=1)
         ).delete()
 
+    @staticmethod
+    def see_notifications(user):
+        Notification.objects.filter(
+            receiver = user,
+            seen = False
+        ).update(seen = True)
+
+    @staticmethod
+    def unseen_notifications_count(user):
+        count = Notification.objects.filter(
+            receiver = user,
+            seen = False
+        ).count()
+        return count
+    
+    @staticmethod
+    def get_notifications(user):
+        notifications = Notification.objects.filter(
+            receiver = user,
+        )
+        return notifications
+
     def see(self):
         self.seen = True
         self.save()
 
     def __str__(self) -> str:
         return f'{self.sender.username} notifying {self.receiver.username}'
+    
+
+# chatting models
+
+class Thread(models.Model):
+
+    thread_name = models.CharField(max_length=100, null=True, blank=True)
+    users = models.ManyToManyField(User)
+
+    @staticmethod
+    def get_or_create(username1, username2):
+        # 
+        user1 = User.objects.get(username=username1)
+        user2 = User.objects.get(username=username2)
+        # 
+        if not FriendList.objects.get(user=user1).is_mutual_friend(user2):
+            return
+        # 
+        thread_name = Thread.name(username1, username2)
+        thread, created = Thread.objects.get_or_create(thread_name=thread_name)
+        if created:
+            thread.users.add(user1, user2)
+        # 
+        return thread, created
+
+    @staticmethod
+    def name(username1, username2):
+        if username1 > username2:
+            return f"thread_{username1}_{username2}"
+        return f"thread_{username2}_{username1}"
+
+    def __str__(self) -> str:
+        return self.thread_name
+
+
+class Message(models.Model):
+
+    text = models.TextField(null=True, blank=True, default="")
+    thread = models.ForeignKey(Thread, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+
+    @staticmethod
+    def get_messages(username1, username2):
+        thread_name = Thread.name(username1, username2)
+        Message.objects.filter(thread__thread_name = thread_name)
+
+    @staticmethod
+    def create(text, thread_name, user):
+        thread = Thread.objects.get(thread_name = thread_name)
+        message = Message.objects.create(text=text, thread=thread, user=user)
+        return message
+
+    def __str__(self) -> str:
+        return f"{self.text} from {self.user.username} at {self.thread.thread_name}"
     
